@@ -1,11 +1,17 @@
 // Generates the pixel village banner (day + night) and one icon per building.
 // Run: node scripts/village.mjs  ->  writes into assets/
-import { writeFileSync, mkdirSync } from "node:fs";
+// The field in the banner is drawn from data/contributions.json, which
+// scripts/fetch-contributions.mjs refreshes every day (see .github/workflows).
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
 mkdirSync(OUT, { recursive: true });
+
+// Without the data file (first run, offline) the field falls back to a seeded pattern.
+const DATA_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "data", "contributions.json");
+const CONTRIB = existsSync(DATA_FILE) ? JSON.parse(readFileSync(DATA_FILE, "utf8")) : null;
 
 // ---------- palettes ----------
 const THEMES = {
@@ -301,13 +307,48 @@ const FARMER = {
     "..pp.pp.....mm",
     ".bbb.bbb......",
   ],
+  // Walking, hoe held upright.
+  w1: [
+    "...hhhh..mmm..",
+    "..hhhhhh.wm...",
+    ".hhHHHHhhw....",
+    "...ssss..w....",
+    "...sses..w....",
+    "...ssss..w....",
+    "..cccccc.w....",
+    ".ccccccssw....",
+    ".cccccc..w....",
+    ".cccccc..w....",
+    "..CCCC...w....",
+    "..pppp...w....",
+    "..pp.pp.......",
+    ".pp...pp......",
+    ".bb...bb......",
+  ],
+  w2: [
+    "...hhhh..mmm..",
+    "..hhhhhh.wm...",
+    ".hhHHHHhhw....",
+    "...ssss..w....",
+    "...sses..w....",
+    "...ssss..w....",
+    "..cccccc.w....",
+    ".ccccccssw....",
+    ".cccccc..w....",
+    ".cccccc..w....",
+    "..CCCC...w....",
+    "..pppp...w....",
+    "..pp.pp.......",
+    "..pp.pp.......",
+    ".bbb.bbb......",
+  ],
 };
 
-function farmer(c, x, y, night, outline) {
+function farmer(c, x, y, night, outline, frames = ["a", "b"]) {
   const k = night
     ? { h: "#a58c45", H: "#6e2f1e", s: "#b88a6a", e: "#1a120c", c: "#355a8c", C: "#264468", p: "#3e3226", b: "#1f1712", w: "#5e4126", m: "#7d8792" }
     : { h: "#efc957", H: "#a5462b", s: "#e8a87f", e: "#2b1d14", c: "#3f7fc4", C: "#2f639c", p: "#6b4f36", b: "#3b2a20", w: "#8a5a2c", m: "#a9b4bf" };
-  for (const f of ["a", "b"]) {
+  for (const f of frames) {
     outlined(c, outline, (o) =>
       FARMER[f].forEach((row, yy) => [...row].forEach((ch, xx) => { if (k[ch]) o.r(x + xx, y + yy, 1, 1, k[ch], `frame-${f}`); })),
       Infinity, `frame-${f}`);
@@ -330,9 +371,24 @@ function svg(c, W, H, P, title, extraCss = "") {
 @keyframes bl{0%{opacity:1}50%{opacity:.35}}
 .frame-a{animation:fa 1.4s steps(1) infinite}.frame-b{opacity:0;animation:fb 1.4s steps(1) infinite}
 @keyframes fa{0%{opacity:1}50%{opacity:0}}@keyframes fb{0%{opacity:0}50%{opacity:1}}
+.frame-w1{animation:fa .5s steps(1) infinite}.frame-w2{opacity:0;animation:fb .5s steps(1) infinite}
 ${extraCss}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.smoke{opacity:.6}}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W * P}" height="${H * P}" shape-rendering="crispEdges" role="img"><title>${title}</title><style>${css}</style>${body}</svg>\n`;
+}
+
+// ---------- contribution field ----------
+// Returns weeks of seven levels (0 = none, 1-4 = GitHub's quartiles, null = no
+// such day, e.g. the rest of the current week).
+function fieldWeeks(rand) {
+  if (CONTRIB) return CONTRIB.weeks;
+  return Array.from({ length: 53 }, (_, w) =>
+    Array.from({ length: 7 }, (_, d) => {
+      if (w === 52 && d > 3) return null;
+      const v = rand();
+      return v < 0.55 ? 0 : v < 0.75 ? 1 : v < 0.88 ? 2 : v < 0.96 ? 3 : 4;
+    }),
+  );
 }
 
 // ---------- banner ----------
@@ -344,7 +400,7 @@ const LAYOUT = [
 function banner(mode) {
   const night = mode === "night";
   const t = THEMES[mode];
-  const W = 240, H = 76, GY = 60;
+  const W = 240, H = 88, GY = 60;
   const c = canvas();
   const rand = mulberry(7);
 
@@ -411,38 +467,62 @@ function banner(mode) {
     c.r(x - 1, GY - 9, 3, 2, night ? "#ffd36b" : "#f3e7b5");
   }
 
-  // the field: a contribution graph you can farm
-  const fx = 10, fy = GY + 5, cols = 32, rows = 3;
-  c.r(fx - 2, fy - 2, cols * 3 + 3, rows * 3 + 3, t.soilBed);
-  for (let cy = 0; cy < rows; cy++)
-    for (let cx = 0; cx < cols; cx++) {
-      const v = rand();
-      const lvl = v < 0.28 ? -1 : v < 0.55 ? 0 : v < 0.75 ? 1 : v < 0.9 ? 2 : 3;
-      c.r(fx + cx * 3, fy + cy * 3, 2, 2, lvl < 0 ? t.soil : t.crops[lvl]);
-    }
-  farmer(c, fx + cols * 3 + 4, GY + 1, night, t.outline);
+  // The field is the real contribution calendar: one column per week, one row
+  // per weekday, in GitHub's own four greens. The farmer walks the year from
+  // left to right; each week's crops are re-planted as he passes, and he ends
+  // the loop hoeing today's column. With animation off he just stands there.
+  const weeks = fieldWeeks(rand);
+  const N = weeks.length, pitch = 3, fx = 8, fy = GY + 5;
+  const T = 28, WALK = 0.78, D = (N - 1) * pitch;
+  c.r(fx - 2, fy - 2, N * pitch + 2, 7 * pitch + 2, t.soilBed);
+  weeks.forEach((days, i) => {
+    days.forEach((lvl, d) => { if (lvl !== null) c.r(fx + i * pitch, fy + d * pitch, 2, 2, t.soil); });
+    const reach = (Math.min(i + 1, N - 1) / (N - 1)) * WALK * T;
+    c.rects.push({ g: "open", cls: "col", style: `animation-delay:${(reach - T).toFixed(2)}s` });
+    days.forEach((lvl, d) => { if (lvl > 0) c.r(fx + i * pitch, fy + d * pitch, 2, 2, t.crops[lvl - 1]); });
+    c.rects.push({ g: "close" });
+  });
 
-  // flowers on the right
-  for (let i = 0; i < 14; i++) {
-    const x = 120 + Math.floor(rand() * 115), y = GY + 5 + Math.floor(rand() * 9);
+  const baseX = fx + (N - 1) * pitch - 12, baseY = fy - 15;
+  c.rects.push({ g: "open", cls: "walker" }, { g: "open", cls: "fade" }, { g: "open", cls: "walking" });
+  farmer(c, baseX, baseY, night, t.outline, ["w1", "w2"]);
+  c.rects.push({ g: "close" }, { g: "open", cls: "hoeing" });
+  farmer(c, baseX, baseY, night, t.outline, ["a", "b"]);
+  c.rects.push({ g: "close" }, { g: "close" }, { g: "close" });
+
+  const fieldCss = `
+.col{animation:grow ${T}s infinite}
+@keyframes grow{0%{opacity:0}.6%{opacity:1}97.5%{opacity:1}98%{opacity:0}100%{opacity:0}}
+.walker{animation:walk ${T}s infinite}
+@keyframes walk{0%{transform:translateX(-${D}px);animation-timing-function:steps(${D},end)}${WALK * 100}%,100%{transform:translateX(0)}}
+.fade{animation:fade ${T}s infinite}
+@keyframes fade{0%{opacity:0}1.5%{opacity:1}97%{opacity:1}100%{opacity:0}}
+.walking{opacity:0;animation:walking ${T}s steps(1) infinite}
+@keyframes walking{0%{opacity:1}${WALK * 100}%{opacity:0}100%{opacity:0}}
+.hoeing{animation:hoeing ${T}s steps(1) infinite}
+@keyframes hoeing{0%{opacity:0}${WALK * 100}%{opacity:1}100%{opacity:1}}`;
+
+  // flowers to the right of the field
+  for (let i = 0; i < 16; i++) {
+    const x = fx + N * pitch + 4 + Math.floor(rand() * (W - fx - N * pitch - 8)), y = GY + 5 + Math.floor(rand() * (H - GY - 8));
     c.r(x, y, 1, 1, ["#f28fad", "#ffd166", "#ffffff"][i % 3]);
   }
 
   return svgWithGroups(c, W, H, 4, night
-    ? "Pixel art of a small village at night with Bambang Saputra's name in the sky: a home, a kitchen, a schoolhouse, a library, a clinic, a quest board, a bookshop and a cinema, with a field shaped like a contribution graph."
-    : "Pixel art of a small village by day with Bambang Saputra's name in the sky: a home, a kitchen, a schoolhouse, a library, a clinic, a quest board, a bookshop and a cinema, with a field shaped like a contribution graph.");
+    ? "Pixel art of a small village at night with Bambang Saputra's name in the sky. In front of the buildings is a field planted from his real GitHub contributions over the past year, tended by a farmer."
+    : "Pixel art of a small village by day with Bambang Saputra's name in the sky. In front of the buildings is a field planted from his real GitHub contributions over the past year, tended by a farmer.", fieldCss);
 }
 
 // patch svg() to understand group markers
 const _svg = svg;
-function svgWithGroups(c, W, H, P, title) {
+function svgWithGroups(c, W, H, P, title, extraCss = "") {
   const parts = [];
   for (const r of c.rects) {
-    if (r.g === "open") parts.push('<g class="drift">');
+    if (r.g === "open") parts.push(`<g class="${r.cls || "drift"}"${r.style ? ` style="${r.style}"` : ""}>`);
     else if (r.g === "close") parts.push("</g>");
     else parts.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.fill}"${r.cls ? ` class="${r.cls}"` : ""}/>`);
   }
-  const shell = _svg({ rects: [] }, W, H, P, title);
+  const shell = _svg({ rects: [] }, W, H, P, title, extraCss);
   return shell.replace("</svg>", parts.join("") + "</svg>");
 }
 
@@ -452,8 +532,8 @@ function icon(name, mode) {
   const t = THEMES[mode];
   const S = 32, GY = 28;
   const c = canvas();
-  c.r(0, 0, S, S, t.sky[3]);
-  if (night) for (const [x, y] of [[3, 3], [24, 5], [9, 7], [27, 2]]) c.r(x, y, 1, 1, "#f6efd2");
+  // Transparent background: the outline keeps the building readable on both
+  // GitHub themes, and the icon no longer reads as a dark square in dark mode.
   c.r(0, GY, S, S - GY, t.grass);
   c.r(0, GY, S, 1, t.path);
   if (name === "field") {
@@ -475,7 +555,7 @@ function icon(name, mode) {
     outlined(c, t.outline, (o) => DRAW[name](o, t, x, GY, night), GY);
     if (name === "kitchen") for (const d of [1, 2, 3]) c.r(x + 14, GY - 20, 2, 2, t.smoke, `smoke d${d}`);
   }
-  return svgWithGroups(c, S, S, 2, `Pixel art ${name}`);
+  return svgWithGroups(c, S, S, 3, `Pixel art ${name}`);
 }
 
 for (const mode of ["day", "night"]) {
