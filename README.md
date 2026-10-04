@@ -1,10 +1,16 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/village-night.svg">
-  <img src="assets/village-day.svg" width="100%" alt="Pixel art of a small village with Bambang Saputra's name in the sky, a row of buildings along a street, and a field shaped like a contribution graph.">
+  <img src="assets/village-day.svg" width="100%" alt="Pixel art of a small village with Bambang Saputra's name in the sky, a row of buildings along a street, and a field planted from his real contributions over the past year.">
 </picture>
 
 <h3 align="center">I work where the model meets the person using it.</h3>
 <p align="center">CS student at BINUS Bandung · Python for data and ML · Laravel and JavaScript for the web</p>
+
+<p align="center">
+  <a href="https://bambangsaputra.vercel.app"><img src="assets/btn-portfolio.svg" height="40" alt="Portfolio"></a>&nbsp;
+  <a href="https://www.linkedin.com/in/bambang-aranaya-saputra-4a42b7325/"><img src="assets/btn-linkedin.svg" height="40" alt="LinkedIn"></a>&nbsp;
+  <a href="mailto:bambangaranayas@gmail.com"><img src="assets/btn-email.svg" height="40" alt="Email"></a>
+</p>
 
 <table align="center">
   <tr>
@@ -28,11 +34,5 @@
     </td>
   </tr>
 </table>
-
-<p align="center">
-  <a href="https://bambangsaputra.vercel.app"><b>Portfolio</b></a> ·
-  <a href="https://www.linkedin.com/in/bambang-aranaya-saputra-4a42b7325/"><b>LinkedIn</b></a> ·
-  <a href="mailto:bambangaranayas@gmail.com"><b>Email</b></a>
-</p>
 
 <p align="center"><sub>Off the clock: manhwa, anime, a camera and a guitar. More projects in the pins below.</sub></p>

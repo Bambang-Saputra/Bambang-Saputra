@@ -73,6 +73,9 @@ const FONT = {
   S: ["01111","10000","10000","01110","00001","00001","11110"],
   T: ["11111","00100","00100","00100","00100","00100","00100"],
   U: ["10001","10001","10001","10001","10001","10001","01110"],
+  F: ["11111","10000","10000","11110","10000","10000","10000"],
+  K: ["10001","10010","10100","11000","10100","10010","10001"],
+  L: ["10000","10000","10000","10000","10000","10000","11111"],
   "·": ["00000","00000","00000","01100","01100","00000","00000"],
   " ": ["00000","00000","00000","00000","00000","00000","00000"],
 };
@@ -557,6 +560,38 @@ function icon(name, mode) {
   }
   return svgWithGroups(c, S, S, 3, `Pixel art ${name}`);
 }
+
+// ---------- contact buttons ----------
+// Chunky pixel buttons so the contact links read as buttons, not as fine print.
+// The LinkedIn mark is deliberately not drawn (its owner asked icon sets to
+// drop it); a briefcase stands in, the same call the portfolio made.
+const GLYPH = {
+  home:     ["...#...", "..###..", ".#####.", "#######", ".##.##.", ".##.##.", ".#####."],
+  case:     ["..###..", "..#.#..", "#######", "#######", "#.....#", "#######", "#######"],
+  envelope: ["#######", "##...##", "#.#.#.#", "#..#..#", "#.....#", "#.....#", "#######"],
+};
+const BUTTONS = [
+  { file: "btn-portfolio", label: "PORTFOLIO", glyph: "home",     base: "#1f5f4e", light: "#2f7d67", dark: "#123a30" },
+  { file: "btn-linkedin",  label: "LINKEDIN",  glyph: "case",     base: "#0a66c2", light: "#2a83db", dark: "#064585" },
+  { file: "btn-email",     label: "EMAIL",     glyph: "envelope", base: "#c8553d", light: "#dd705a", dark: "#8a3524" },
+];
+
+function button({ label, glyph, base, light, dark }) {
+  const textW = label.length * 6 - 1;
+  const W = 1 + 3 + 7 + 3 + textW + 4 + 1, H = 15;
+  const c = canvas();
+  c.r(1, 0, W - 2, H - 1, dark);       // outline, corners cut
+  c.r(0, 1, W, H - 3, dark);
+  c.r(1, 1, W - 2, H - 3, base);       // face
+  c.r(1, 1, W - 2, 1, light);          // top highlight
+  c.r(1, H - 2, W - 2, 1, dark);       // pressed-in bottom edge
+  GLYPH[glyph].forEach((row, y) => [...row].forEach((ch, x) => { if (ch === "#") c.r(4 + x, 4 + y, 1, 1, "#ffffff"); }));
+  text(c, label, 15, 5, 1, dark);      // drop shadow
+  text(c, label, 14, 4, 1, "#ffffff");
+  return svgWithGroups(c, W, H, 3, label.charAt(0) + label.slice(1).toLowerCase());
+}
+
+for (const b of BUTTONS) writeFileSync(join(OUT, `${b.file}.svg`), button(b));
 
 for (const mode of ["day", "night"]) {
   const b = banner(mode);
