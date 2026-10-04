@@ -4,8 +4,6 @@
 </picture>
 
 <h3 align="center">I work where the model meets the person using it.</h3>
-<p align="center">CS student at BINUS Bandung · Python for data and ML · Laravel and JavaScript for the web</p>
-
 <p align="center">
   <a href="https://bambangsaputra.vercel.app"><img src="assets/btn-portfolio.svg" height="40" alt="Portfolio"></a>&nbsp;
   <a href="https://www.linkedin.com/in/bambang-aranaya-saputra-4a42b7325/"><img src="assets/btn-linkedin.svg" height="40" alt="LinkedIn"></a>&nbsp;
@@ -34,5 +32,12 @@
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <sub>BUILT WITH</sub><br>
+  <img src="assets/tech-python.svg" height="36" alt="Python" title="Python"> <img src="assets/tech-pandas.svg" height="36" alt="pandas" title="pandas"> <img src="assets/tech-jupyter.svg" height="36" alt="Jupyter" title="Jupyter">&nbsp;&nbsp;&nbsp;
+  <img src="assets/tech-laravel.svg" height="36" alt="Laravel" title="Laravel"> <img src="assets/tech-javascript.svg" height="36" alt="JavaScript" title="JavaScript"> <img src="assets/tech-tailwindcss.svg" height="36" alt="Tailwind CSS" title="Tailwind CSS"> <img src="assets/tech-fastapi.svg" height="36" alt="FastAPI" title="FastAPI">&nbsp;&nbsp;&nbsp;
+  <img src="assets/tech-figma.svg" height="36" alt="Figma" title="Figma">
+</p>
 
 <p align="center"><sub>Off the clock: manhwa, anime, a camera and a guitar. More projects in the pins below.</sub></p>
